@@ -15,6 +15,13 @@ args = parser.parse_args()
 acc_rate = 1.25
 acc_rate0 = 1.0
 
+def clusterize_mask(arr, smooth):
+    arr_out = np.zeros(np.size(arr)).astype(bool)
+    for i in np.arange(smooth, np.size(arr)-smooth, 2*smooth):
+        hassound = np.sum(arr[i-smooth:i+smooth]) > 0
+        arr_out[i-smooth:i+smooth].fill(hassound)
+    return arr_out
+            
 content = np.empty((0,2), dtype=np.int16)
 
 for filename in args.inputfiles:
@@ -22,14 +29,22 @@ for filename in args.inputfiles:
     content = np.append(content, content_read, axis=0)
     
 threschold = np.mean(np.abs(content))
-signalpos = np.where(np.abs(content) > threschold)
+#signalpos = np.where(np.abs(content) > threschold)
 
-threschold = np.mean(np.abs(content[signalpos]))/10
-signalpos = np.where(np.abs(content) > threschold)
-signalpos_norepeat = np.unique(signalpos[0])
-signalpos_norepeat = np.append(signalpos_norepeat, np.shape(content)[0])
-signalborders = signalpos_norepeat[np.gradient(signalpos_norepeat) > 2000]
+#threschold = np.mean(np.abs(content[signalpos]))/10
+signalpos_bool = np.abs(content) > threschold
+signalpos_merged = np.logical_or(signalpos_bool[:,0], signalpos_bool[:,1])
+del signalpos_bool
+signalpos_smoothed = clusterize_mask(signalpos_merged, int(rate/20))
+del signalpos_merged
+signalborders = np.where(signalpos_smoothed[:np.size(signalpos_smoothed)-1] != signalpos_smoothed[1:])[0]
+del signalpos_smoothed
+#signalpos = np.where(np.abs(content) > threschold)
+#signalpos_norepeat = np.unique(signalpos[0])
+#signalpos_norepeat = np.append(signalpos_norepeat, np.shape(content)[0])
+#signalborders = signalpos_norepeat[np.gradient(signalpos_norepeat) > 2000]
 signalborders = np.insert(signalborders, 0, 0)
+signalborders = np.append(signalborders, np.size(content[:,0]))
 
 newcontent = np.empty((0,2), dtype=np.int16)
 
