@@ -26,8 +26,11 @@ content = np.empty((0,2), dtype=np.int16)
 
 for filename in args.inputfiles:
     rate, content_read = wf.read(filename)
+    if np.size(np.shape(content_read)) == 1:
+        content_read = np.column_stack((content_read, content_read))
     content = np.append(content, content_read, axis=0)
     
+del content_read
 threschold = np.mean(np.abs(content))
 #signalpos = np.where(np.abs(content) > threschold)
 
